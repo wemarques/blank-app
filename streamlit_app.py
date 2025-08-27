@@ -24,10 +24,9 @@ if logo:
 # === Upload do Excel de lançamentos ===
 uploaded_file = st.file_uploader("📤 Envie seu arquivo Excel de lançamentos", type=["xlsx"])
 
-if not upload_file:
+if not uploaded_file:  # <-- Corrigido aqui: uploaded_file, não upload_file
     st.info("Por favor, envie um arquivo Excel com seus lançamentos.")
     st.stop()
-
 # === Leitura do Excel ===
 try:
     df_lancamentos = pd.read_excel(upload_file)
