@@ -11,13 +11,22 @@ st.title("📊 Dashboard Financeiro Pessoal - OUTUBRO 2024")
 # Leitura do CSV
 @st.cache_data
 def carregar_dados():
-    try:
-        df = pd.read_csv("dados.csv")
-        return df
-    except Exception as e:
-        st.error(f"Erro ao carregar dados.csv: {e}")
-        st.info("Certifique-se de que o arquivo 'dados.csv' está na mesma pasta do dashboard.py")
-        return pd.DataFrame()
+    import os
+
+# Mostra arquivos na pasta (para depuração)
+st.write("📁 Arquivos disponíveis:", os.listdir("."))
+
+# Tenta ler o CSV
+try:
+    df = pd.read_csv("dados.csv")
+    st.success("✅ CSV carregado com sucesso!")
+    return df
+except FileNotFoundError:
+    st.error("❌ Erro: Arquivo 'dados.csv' não encontrado na raiz do projeto.")
+    st.stop()
+except Exception as e:
+    st.error(f"❌ Erro ao ler o CSV: {e}")
+    st.stop()
 
 df = carregar_dados()
 
