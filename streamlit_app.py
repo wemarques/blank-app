@@ -6,29 +6,46 @@ import plotly.graph_objects as go
 
 # Configuração da página
 st.set_page_config(page_title="Dashboard Financeiro", layout="wide")
+
+# Título inicial (será atualizado após upload)
 st.title("📊 Dashboard Financeiro Pessoal")
 
-# === Upload do Excel ===
-uploaded_file = st.file_uploader("📤 Envie seu arquivo Excel (GFR FICTICIO.xlsx)", type=["xlsx"])
+# === Upload do Excel (apenas o botão aparece inicialmente) ===
+with st.empty():
+    uploaded_file = st.file_uploader("", type=["xlsx"], label_visibility="collapsed")
 
 if not uploaded_file:
-    st.info("Por favor, envie um arquivo Excel para carregar os dados.")
+    st.info("👆 Por favor, envie um arquivo Excel para carregar os dados.")
     st.stop()
 
-# === Leitura da aba OUTUBRO 2024 ===
+# === Leitura do arquivo Excel ===
 try:
-    df = pd.read_excel(uploaded_file, sheet_name="OUTUBRO 2024", skiprows=3)
+    # Leitura de todas as abas
+    excel_file = pd.ExcelFile(uploaded_file)
+    abas = [sheet for sheet in excel_file.sheet_names if sheet.strip().upper() != ""]
+
+    if not abas:
+        st.error("Nenhuma aba encontrada no arquivo.")
+        st.stop()
+
+    # Seleção da aba (mês)
+    aba_selecionada = st.selectbox("Selecione o mês", abas)
+    df = pd.read_excel(excel_file, sheet_name=aba_selecionada, skiprows=3)
+
 except Exception as e:
-    st.error(f"Erro ao ler a aba 'OUTUBRO 2024'. Confira o nome da aba. Detalhe: {e}")
+    st.error(f"Erro ao ler o arquivo Excel: {e}")
     st.stop()
 
-# === Extração de dados da planilha (baseado na estrutura fornecida) ===
+# === Extração de dados (baseado na estrutura fornecida) ===
 try:
-    # KPIs principais (células específicas)
-    receitas = 20300.02  # Pode ser extraído de uma célula se necessário
+    # KPIs principais (extraídos da planilha)
+    receitas = 20300.02
     pagamentos = 14881.46
     poupanca = 5418.56
     percent_despesa = (pagamentos / receitas) * 100
+
+    # Atualiza o título com o mês
+    st.title(f"📊 Dashboard Financeiro Pessoal - {aba_selecionada}")
 
     # === KPIs PRINCIPAIS ===
     st.subheader("📌 Resumo Financeiro")
@@ -52,7 +69,7 @@ try:
         dados_decendio,
         x="Período",
         y=["Receitas", "Despesas"],
-        title="Entradas e Saídas por Decêndio",
+        title=f"Entradas e Saídas por Decêndio - {aba_selecionada}",
         labels={"value": "Valor (R$)", "variable": "Tipo"},
         barmode="group",
         color_discrete_map={"Receitas": "#2E8B57", "Despesas": "#D32F2F"}
@@ -71,7 +88,7 @@ try:
     fig_pie = px.pie(
         names=list(despesas_categorias.keys()),
         values=list(despesas_categorias.values()),
-        title="Distribuição das Despesas",
+        title=f"Distribuição das Despesas - {aba_selecionada}",
         color_discrete_sequence=px.colors.qualitative.Pastel
     )
     st.plotly_chart(fig_pie, use_container_width=True)
@@ -79,7 +96,7 @@ try:
     # === GRÁFICO 3: Evolução Diária do Saldo ===
     st.subheader("📉 Evolução Diária do Saldo")
 
-    # Dados da seção SAZONALIDADE (copiados da planilha)
+    # Dados da seção SAZONALIDADE
     entradas = [0, 0, 0, 2000, 0, 0, 0, 0, 5000, 200,
                 0, 0, 0, 100, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 8000, 0.01, 0.01, 5000]
@@ -108,7 +125,7 @@ try:
         line=dict(color='#1976D2')
     ))
     fig_line.update_layout(
-        title="Evolução do Saldo Bancário (Outubro/2024)",
+        title=f"Evolução do Saldo Bancário ({aba_selecionada})",
         xaxis_title="Dia",
         yaxis_title="Saldo (R$)",
         hovermode="x"
@@ -122,7 +139,7 @@ try:
     st.dataframe(tabela, use_container_width=True)
 
     # Créditos
-    st.caption("Dashboard financeiro gerado com Streamlit | Fonte: GFR FICTICIO.xlsx")
+    st.caption("Dashboard financeiro gerado com Streamlit | Fonte: Dados do usuário")
 
 except Exception as e:
     st.error(f"Erro ao processar os dados: {e}")
