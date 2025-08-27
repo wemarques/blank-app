@@ -1,5 +1,6 @@
 # streamlit_app.py
 import streamlit as st
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -25,25 +26,19 @@ col4.metric("📈 % Poupança", f"{(poupanca/receitas)*100:.1f}%")
 # === GRÁFICO 1: Receitas e Despesas por Decêndio ===
 st.subheader("📈 Receitas e Despesas por Decêndio")
 
-dados_decendio = [
-    {"Período": "1 a 10", "Tipo": "Receitas", "Valor": 7200.00},
-    {"Período": "1 a 10", "Tipo": "Despesas", "Valor": 5418.49},
-    {"Período": "11 a 20", "Tipo": "Receitas", "Valor": 100.00},
-    {"Período": "11 a 20", "Tipo": "Despesas", "Valor": 5222.07},
-    {"Período": "21 a 31", "Tipo": "Receitas", "Valor": 13000.02},
-    {"Período": "21 a 31", "Tipo": "Despesas", "Valor": 4240.90},
-]
-
-df_decendio = pd.DataFrame(dados_decendio)
+dados_decendio = pd.DataFrame({
+    "Período": ["1 a 10", "11 a 20", "21 a 31", "Total"],
+    "Receitas": [7200.00, 100.00, 13000.02, receitas],
+    "Despesas": [5418.49, 5222.07, 4240.90, pagamentos]
+})
 
 fig_bar = px.bar(
-    df_decendio,
+    dados_decendio,
     x="Período",
-    y="Valor",
-    color="Tipo",
-    barmode="group",
+    y=["Receitas", "Despesas"],
     title="Entradas e Saídas por Decêndio",
-    labels={"Valor": "Valor (R$)"},
+    labels={"value": "Valor (R$)", "variable": "Tipo"},
+    barmode="group",
     color_discrete_map={"Receitas": "#2E8B57", "Despesas": "#D32F2F"}
 )
 st.plotly_chart(fig_bar, use_container_width=True)
@@ -77,6 +72,7 @@ saidas = [0, 100, 552.5, 100, 0, 0, 365.34, 2752.53, 225.12, 1323,
           0, 0, 0, 1962.91, 0, 255.62, 2991.54, 12, 0, 0,
           112.5, 508, 758.61, 50, 0, 0, 0, 500, 284.53, 506, 1521.26]
 
+# Saldo inicial
 saldo_inicial = 39416.49
 saldo = [saldo_inicial]
 for i in range(31):
