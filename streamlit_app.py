@@ -1,6 +1,5 @@
-# dashboard.py
+# streamlit_app.py
 import streamlit as st
-import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -8,66 +7,48 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="Dashboard Financeiro", layout="wide")
 st.title("📊 Dashboard Financeiro Pessoal - OUTUBRO 2024")
 
-# Leitura do CSV
-@st.cache_data
-def carregar_dados():
-    import os
-
-# Mostra arquivos na pasta (para depuração)
-st.write("📁 Arquivos disponíveis:", os.listdir("."))
-
-# Tenta ler o CSV
-try:
-    df = pd.read_csv("dados.csv")
-    st.success("✅ CSV carregado com sucesso!")
-    return df
-except FileNotFoundError:
-    st.error("❌ Erro: Arquivo 'dados.csv' não encontrado na raiz do projeto.")
-    st.stop()
-except Exception as e:
-    st.error(f"❌ Erro ao ler o CSV: {e}")
-    st.stop()
-
-df = carregar_dados()
-
-if df.empty:
-    st.stop()
+# === DADOS EXTRAÍDOS DA PLANILHA GFR FICTICIO.xlsx ===
+receitas = 20300.02
+pagamentos = 14881.46
+poupanca = 5418.56
+percent_despesa = (pagamentos / receitas) * 100
 
 # === KPIs PRINCIPAIS ===
 st.subheader("📌 Resumo Financeiro")
 
-receitas = 20300.02
-pagamentos = 14881.46
-poupanca = 5418.56
-perc_despesa = (pagamentos / receitas) * 100
-
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("💰 Entradas", f"R$ {receitas:,.2f}")
-col2.metric("💸 Saídas", f"R$ {pagamentos:,.2f}", delta=f"{perc_despesa:.1f}% das entradas")
+col2.metric("💸 Saídas", f"R$ {pagamentos:,.2f}", delta=f"{percent_despesa:.1f}% das entradas")
 col3.metric("✅ Saldo Líquido", f"R$ {poupanca:,.2f}")
 col4.metric("📈 % Poupança", f"{(poupanca/receitas)*100:.1f}%")
 
-# === GRÁFICO: Receitas e Despesas por Decêndio ===
+# === GRÁFICO 1: Receitas e Despesas por Decêndio ===
 st.subheader("📈 Receitas e Despesas por Decêndio")
 
-dados_decendio = pd.DataFrame({
-    "Período": ["1 a 10", "11 a 20", "21 a 31", "Total"],
-    "Receitas": [7200.00, 100.00, 13000.02, receitas],
-    "Despesas": [5418.49, 5222.07, 4240.90, pagamentos]
-})
+dados_decendio = [
+    {"Período": "1 a 10", "Tipo": "Receitas", "Valor": 7200.00},
+    {"Período": "1 a 10", "Tipo": "Despesas", "Valor": 5418.49},
+    {"Período": "11 a 20", "Tipo": "Receitas", "Valor": 100.00},
+    {"Período": "11 a 20", "Tipo": "Despesas", "Valor": 5222.07},
+    {"Período": "21 a 31", "Tipo": "Receitas", "Valor": 13000.02},
+    {"Período": "21 a 31", "Tipo": "Despesas", "Valor": 4240.90},
+]
+
+df_decendio = pd.DataFrame(dados_decendio)
 
 fig_bar = px.bar(
-    dados_decendio,
+    df_decendio,
     x="Período",
-    y=["Receitas", "Despesas"],
-    title="Entradas e Saídas por Decêndio",
-    labels={"value": "Valor (R$)", "variable": "Tipo"},
+    y="Valor",
+    color="Tipo",
     barmode="group",
+    title="Entradas e Saídas por Decêndio",
+    labels={"Valor": "Valor (R$)"},
     color_discrete_map={"Receitas": "#2E8B57", "Despesas": "#D32F2F"}
 )
 st.plotly_chart(fig_bar, use_container_width=True)
 
-# === GRÁFICO: Composição das Despesas ===
+# === GRÁFICO 2: Composição das Despesas ===
 st.subheader("🥧 Composição das Despesas")
 
 despesas_categorias = {
@@ -77,16 +58,17 @@ despesas_categorias = {
 }
 
 fig_pie = px.pie(
-    names=despesas_categorias.keys(),
-    values=despesas_categorias.values(),
+    names=list(despesas_categorias.keys()),
+    values=list(despesas_categorias.values()),
     title="Distribuição das Despesas",
     color_discrete_sequence=px.colors.qualitative.Pastel
 )
 st.plotly_chart(fig_pie, use_container_width=True)
 
-# === EVOLUÇÃO DO SALDO ===
+# === GRÁFICO 3: Evolução Diária do Saldo ===
 st.subheader("📉 Evolução Diária do Saldo")
 
+# Dados da seção SAZONALIDADE
 entradas = [0, 0, 0, 2000, 0, 0, 0, 0, 5000, 200,
             0, 0, 0, 100, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 8000, 0.01, 0.01, 5000]
@@ -129,4 +111,4 @@ tabela["%"] = (tabela["Valor (R$)"] / pagamentos * 100).round(1)
 st.dataframe(tabela, use_container_width=True)
 
 # Créditos
-st.caption("Dashboard financeiro gerado com Streamlit | Dados extraídos de GFR FICTICIO.xlsx")
+st.caption("Dashboard financeiro gerado com Streamlit | Dados: GFR FICTICIO.xlsx")
