@@ -3,60 +3,126 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from PIL import Image
 
 # Configuração da página
 st.set_page_config(page_title="Dashboard Financeiro", layout="wide")
 
-# Carregar o logo
-try:
-    logo = Image.open("logo.png")
-except Exception as e:
-    st.warning("Logo não encontrado. Coloque 'logo.png' na mesma pasta.")
-    logo = None
+# === CABEÇALHO COM MARCA JEB ASSESSORIA EMPRESARIAL ===
+st.markdown(
+    """
+    <div style="background-color: #1976D2; color: white; padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+        <h1 style="margin: 0;">📊 Dashboard Financeiro Pessoal</h1>
+        <p style="margin: 0; font-size: 16px;">© JEB ASSESSORIA EMPRESARIAL</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-# Título com logo
-col1, col2 = st.columns([3, 1])
-col1.title("📊 Dashboard Financeiro Pessoal")
-if logo:
-    col2.image(logo, width=80)
-
-# === Upload do Excel de lançamentos ===
-uploaded_file = st.file_uploader("📤 Envie seu arquivo Excel de lançamentos", type=["xlsx"])
-
-if not uploaded_file:  # <-- Corrigido aqui: uploaded_file, não upload_file
-    st.info("Por favor, envie um arquivo Excel com seus lançamentos.")
-    st.stop()
-# === Leitura do Excel ===
-try:
-    df_lancamentos = pd.read_excel(upload_file)
-except Exception as e:
-    st.error(f"Erro ao ler o arquivo: {e}")
-    st.stop()
-
-# === Calcular totais ===
-entradas = df_lancamentos[df_lancamentos["Tipo"] == "Entrada"]["Valor (R$)"].sum()
-saidas = df_lancamentos[df_lancamentos["Tipo"] == "Saída"]["Valor (R$)"].sum()
-saldo = entradas - saidas
+# === DADOS EXTRAÍDOS DA PLANILHA GFR FICTICIO.xlsx ===
+receitas = 20300.02
+pagamentos = 14881.46
+poupanca = 5418.56
+percent_despesa = (pagamentos / receitas) * 100
 
 # === KPIs PRINCIPAIS ===
 st.subheader("📌 Resumo Financeiro")
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("💰 Entradas", f"R$ {entradas:,.2f}")
-col2.metric("💸 Saídas", f"R$ {saidas:,.2f}", delta=f"{(saidas/entradas)*100:.1f}% das entradas")
-col3.metric("✅ Saldo Líquido", f"R$ {saldo:,.2f}")
-col4.metric("📈 % Poupança", f"{(saldo/entradas)*100:.1f}%")
+col1.metric("💰 Entradas", f"R$ {receitas:,.2f}")
+col2.metric("💸 Saídas", f"R$ {pagamentos:,.2f}", delta=f"{percent_despesa:.1f}% das entradas")
+col3.metric("✅ Saldo Líquido", f"R$ {poupanca:,.2f}")
+col4.metric("📈 % Poupança", f"{(poupanca/receitas)*100:.1f}%")
 
-# === Gráficos ===
-# Exemplo: gráfico de entradas vs saídas
+# === GRÁFICO 1: Receitas e Despesas por Decêndio ===
+st.subheader("📈 Receitas e Despesas por Decêndio")
+
+dados_decendio = pd.DataFrame({
+    "Período": ["1 a 10", "11 a 20", "21 a 31", "Total"],
+    "Receitas": [7200.00, 100.00, 13000.02, receitas],
+    "Despesas": [5418.49, 5222.07, 4240.90, pagamentos]
+})
+
 fig_bar = px.bar(
-    x=["Entradas", "Saída"],
-    y=[entradas, saidas],
-    title="Entradas vs Saídas",
-    color_discrete_map={"Entrada": "#2E8B57", "Saída": "#D32F2F"}
+    dados_decendio,
+    x="Período",
+    y=["Receitas", "Despesas"],
+    title="Entradas e Saídas por Decêndio",
+    labels={"value": "Valor (R$)", "variable": "Tipo"},
+    barmode="group",
+    color_discrete_map={"Receitas": "#2E8B57", "Despesas": "#D32F2F"}
 )
 st.plotly_chart(fig_bar, use_container_width=True)
 
-# Créditos
-st.caption("Dashboard financeiro gerado com Streamlit | © JEB ASSESSORIA EMPRESARIAL")
+# === GRÁFICO 2: Composição das Despesas ===
+st.subheader("🥧 Composição das Despesas")
+
+despesas_categorias = {
+    "Empresa": 9982.89,
+    "Pessoais": 4823.55,
+    "Financeiras": 75.02
+}
+
+fig_pie = px.pie(
+    names=list(despesas_categorias.keys()),
+    values=list(despesas_categorias.values()),
+    title="Distribuição das Despesas",
+    color_discrete_sequence=px.colors.qualitative.Pastel
+)
+st.plotly_chart(fig_pie, use_container_width=True)
+
+# === GRÁFICO 3: Evolução Diária do Saldo ===
+st.subheader("📉 Evolução Diária do Saldo")
+
+# Dados da seção SAZONALIDADE
+entradas = [0, 0, 0, 2000, 0, 0, 0, 0, 5000, 200,
+            0, 0, 0, 100, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 8000, 0.01, 0.01, 5000]
+
+saidas = [0, 100, 552.5, 100, 0, 0, 365.34, 2752.53, 225.12, 1323,
+          0, 0, 0, 1962.91, 0, 255.62, 2991.54, 12, 0, 0,
+          112.5, 508, 758.61, 50, 0, 0, 0, 500, 284.53, 506, 1521.26]
+
+# Saldo inicial
+saldo_inicial = 39416.49
+saldo = [saldo_inicial]
+for i in range(31):
+    saldo.append(saldo[-1] + entradas[i] - saidas[i])
+saldo = saldo[1:]
+
+df_saldo = pd.DataFrame({
+    "Dia": list(range(1, 32)),
+    "Saldo": saldo
+})
+
+fig_line = go.Figure()
+fig_line.add_trace(go.Scatter(
+    x=df_saldo["Dia"],
+    y=df_saldo["Saldo"],
+    mode='lines+markers',
+    name='Saldo',
+    line=dict(color='#1976D2')
+))
+fig_line.update_layout(
+    title="Evolução do Saldo Bancário (Outubro/2024)",
+    xaxis_title="Dia",
+    yaxis_title="Saldo (R$)",
+    hovermode="x"
+)
+st.plotly_chart(fig_line, use_container_width=True)
+
+# === Tabela de Despesas ===
+st.subheader("📋 Despesas por Categoria")
+tabela = pd.DataFrame(list(despesas_categorias.items()), columns=["Categoria", "Valor (R$)"])
+tabela["%"] = (tabela["Valor (R$)"] / pagamentos * 100).round(1)
+st.dataframe(tabela, use_container_width=True)
+
+# === Rodapé com marca ===
+st.markdown("---")
+st.markdown(
+    """
+    <div style="text-align: center; font-size: 14px; color: #555;">
+        © JEB ASSESSORIA EMPRESARIAL | Dashboard financeiro gerado com Streamlit
+    </div>
+    """,
+    unsafe_allow_html=True
+)
